@@ -155,5 +155,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 CORS_ALLOWED_ORIGINS = [
     "https://zen-mart-frontend.vercel.app",
+    "https://zenmart-ecommerce1.vercel.app",
     "http://localhost:3000",
 ]
