@@ -1,0 +1,85 @@
+<html>
+  <body>
+    {% if name %}
+    <h1>Hello {{name}}</h1>
+    {% else %}
+    <h1>Hello World</h1>
+    {% endif %}
+
+    <!-- <h1>Product list between Price 20 and 30</h1>
+    <ul>
+      {% for product in products %}
+      <li>{{ product.title }}</li>
+      {% endfor %}
+    </ul>
+
+    <h1>All Coffee list</h1>
+    <ul>
+      {% for product in product2 %}
+      <li>{{ product.title }}</li>
+      {% endfor %}
+    </ul>
+
+    <h1>Gold Members or ID less than 10</h1>
+
+    <table border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>First Name</th>
+          <th>Membership</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for customer in customers %}
+        <tr>
+          <td>{{ customer.id }}</td>
+          <td>{{ customer.first_name }}</td>
+          <td>{{ customer.membership }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3">No customers found!</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <ul>
+      {% for product in product5 %}
+      <li>{{ product.title }}</li>
+      {% endfor %}
+    </ul> -->
+
+    <!-- <h1>
+      -----------------Deferring field & Selecting related
+      object----------------------------------------------
+    </h1>
+    <ul>
+      {% for p in product %}
+      <li>{{ p.title }}</li>
+      {% endfor %}
+    </ul>
+
+    <ul>
+      {% for order in orders %}
+      <li>{{order.id}} - {{ order.customer.first_name}}</li>
+      {% endfor %}
+    </ul>
+
+    <ul>
+      {% for product in products %}
+      <li>{{product.title}} - {{ product.collection.title}}</li>
+      {% endfor %}
+    </ul>
+
+    <ul>
+      {% for pp in p %}
+      <li>{{pp}}</li>
+      {% endfor %}
+    </ul>
+    <h1>--------------------Aggregate-------------------------------------------</h1> -->
+
+    {{result}}
+  </body>
+</html>
