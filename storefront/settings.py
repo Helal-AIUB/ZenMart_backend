@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-d%a#46#1z9miahk7nogor6nhvddqi4y+h8i-!5&n36h1*32=2t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['zenmart-backend.onrender.com', 'localhost', '127.0.0.1']
 
 
 
@@ -143,5 +144,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 CORS_ALLOWED_ORIGINS = [
+    "https://zen-mart-frontend.vercel.app/",
     "http://localhost:3000",
 ]
