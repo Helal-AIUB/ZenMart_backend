@@ -1,0 +1,10 @@
+[
+{
+    "model": "store.collection",
+    "pk": 1,
+    "fields": {
+        "title": "collection1",
+        "featured_product": null
+    }
+}
+]
