@@ -152,6 +152,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 CORS_ALLOWED_ORIGINS = [
-    "https://zen-mart-frontend.vercel.app/",
+    "https://zen-mart-frontend.vercel.app",
     "http://localhost:3000",
 ]
