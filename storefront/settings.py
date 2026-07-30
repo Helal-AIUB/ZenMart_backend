@@ -43,13 +43,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
     'rest_framework',
     'playground',
     'debug_toolbar',
     'store',
-    'store_custom',
     'tags',
-    'likes'
+    'likes',
+    'core'
 ]
 
 MIDDLEWARE = [
@@ -106,10 +107,23 @@ WSGI_APPLICATION = 'storefront.wsgi.application'
 # }
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL')
-    )
+    'default': dj_database_url.parse("postgresql://neondb_owner:npg_Cel87mDsryIn@ep-super-term-ayqlo0ba-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
 }
+
+# if os.environ.get('DATABASE_URL'):
+#     DATABASES = {
+#         'default': dj_database_url.config()
+#     }
+# else:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.mysql',
+#             'NAME': 'storefront2',
+#             'HOST': 'localhost',
+#             'USER': 'root',
+#             'PASSWORD': 'helalAIUB8009.@#'
+#         }
+#     }
 
 
 # Password validation
@@ -158,3 +172,6 @@ CORS_ALLOWED_ORIGINS = [
     "https://zenmart-ecommerce1.vercel.app",
     "http://localhost:3000",
 ]
+
+
+AUTH_USER_MODEL = 'core.User'
