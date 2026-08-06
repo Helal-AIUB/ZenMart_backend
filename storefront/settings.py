@@ -176,7 +176,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://zen-mart-frontend.vercel.app",
     "https://zenmart-ecommerce1.vercel.app",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 
 AUTH_USER_MODEL = 'core.User'
