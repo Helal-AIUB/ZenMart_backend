@@ -29,6 +29,7 @@ virtualenv = "==21.5.1"
 whitenoise = "==6.9.0"
 django-filter = "*"
 drf-nested-routers = "*"
+pillow = "*"
 
 [dev-packages]
 
