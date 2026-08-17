@@ -32,8 +32,17 @@ pillow = "*"
 django-cors-headers = "*"
 django-template-mail = "*"
 django-templated-mail = "*"
+redis = "*"
+celery = "*"
+flower = "*"
 
 [dev-packages]
+pytest = "*"
+pytest-django = "*"
+pytest-watch = "*"
+model-bakery = "*"
+locust = "*"
+django-silk = "*"
 
 [requires]
 python_version = "3.14"
