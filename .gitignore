@@ -38,3 +38,5 @@ media/
 # Coverage
 .coverage
 htmlcov/
+
+general.log

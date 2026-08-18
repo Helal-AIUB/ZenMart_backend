@@ -31,22 +31,7 @@ from celery.schedules import crontab
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-d%a#46#1z9miahk7nogor6nhvddqi4y+h8i-!5&n36h1*32=2t'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-# ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['zenmart-backend.onrender.com', 'localhost', '127.0.0.1']
-
-
-
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -74,6 +59,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -111,23 +97,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'storefront.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'test_storefront2',
-#         'HOST': 'localhost',
-#         'USER': 'root',
-#         'PASSWORD': 'helalAIUB8009.@#'
-#     }
-# }
-
-DATABASES = {
-    'default': dj_database_url.parse("postgresql://neondb_owner:npg_Cel87mDsryIn@ep-super-term-ayqlo0ba-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
-}
 
 # if os.environ.get('DATABASE_URL'):
 #     DATABASES = {
@@ -187,6 +156,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -227,5 +197,41 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 5,      #crontab(day_of_week=1, hour=7, minute=30)
         'args': ['Hello World'],
 
+    }
+}
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "TIMEOUT": 10 * 60,
+    }
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler'
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'general.log',
+            'formatter': 'verbose'
+        }
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console', 'file'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO')
+        }
+    },
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} ({levelname}) - {name} - {message}',
+            'style': '{'
+        }
     }
 }
