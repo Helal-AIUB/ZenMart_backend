@@ -76,23 +76,51 @@ class Customer(models.Model):
         ordering = ['user__first_name', 'user__last_name']
 
 
-class Order(models.Model):
-    PAYMENT_STATUS_PENDING = 'P'
-    PAYMENT_STATUS_COMPLETE = 'C'
-    PAYMENT_STATUS_FAILED = 'F'
-    PAYMENT_STATUS_CHOICES = [
-        (PAYMENT_STATUS_PENDING, 'Pending'),
-        (PAYMENT_STATUS_COMPLETE, 'Complete'),
-        (PAYMENT_STATUS_FAILED, 'Failed'),
+class Order(models.Model): 
+    # Payment Status
+    PAYMENT_STATUS_PENDING = 'P' 
+    PAYMENT_STATUS_COMPLETE = 'C' 
+    PAYMENT_STATUS_FAILED = 'F' 
+    PAYMENT_STATUS_CHOICES = [ 
+        (PAYMENT_STATUS_PENDING, 'Pending'), 
+        (PAYMENT_STATUS_COMPLETE, 'Complete'), 
+        (PAYMENT_STATUS_FAILED, 'Failed'), 
+    ] 
+
+    # Delivery Tracking Status (NEW)
+    DELIVERY_STATUS_PLACED = 'Placed'
+    DELIVERY_STATUS_PROCESSING = 'Processing'
+    DELIVERY_STATUS_SHIPPED = 'Shipped'
+    DELIVERY_STATUS_DELIVERED = 'Delivered'
+    DELIVERY_STATUS_CANCELED = 'Canceled'
+    
+    DELIVERY_STATUS_CHOICES = [
+        (DELIVERY_STATUS_PLACED, 'Placed'),
+        (DELIVERY_STATUS_PROCESSING, 'Processing'),
+        (DELIVERY_STATUS_SHIPPED, 'Shipped'),
+        (DELIVERY_STATUS_DELIVERED, 'Delivered'),
+        (DELIVERY_STATUS_CANCELED, 'Canceled'),
     ]
-
-    placed_at = models.DateTimeField(auto_now_add=True)
-    payment_status = models.CharField(max_length=30, choices = PAYMENT_STATUS_CHOICES, default= PAYMENT_STATUS_PENDING)
-    customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
-
-    class Meta:
-        permissions = [
-            ('cancel_order', 'Can cancel order')
+ 
+    placed_at = models.DateTimeField(auto_now_add=True) 
+    payment_status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_STATUS_PENDING) 
+    
+    # New Field for Tracking
+    delivery_status = models.CharField(max_length=50, choices=DELIVERY_STATUS_CHOICES, default=DELIVERY_STATUS_PLACED) 
+    
+    # Order Specific Shipping Address
+    first_name = models.CharField(max_length=255, null=True, blank=True)
+    last_name = models.CharField(max_length=255, null=True, blank=True)
+    street = models.CharField(max_length=255, null=True, blank=True)
+    city = models.CharField(max_length=255, null=True, blank=True)
+    zip_code = models.CharField(max_length=255, null=True, blank=True)
+    phone = models.CharField(max_length=255, null=True, blank=True)
+    
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT) 
+ 
+    class Meta: 
+        permissions = [ 
+            ('cancel_order', 'Can cancel order') 
         ]
 
 class OrderItem(models.Model):

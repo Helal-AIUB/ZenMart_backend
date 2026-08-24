@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 from .signals import order_created
 from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review
+from core.serializers import UserSerializer
 
 class CollectionSerializer(serializers.ModelSerializer):
     products_count = serializers.IntegerField(read_only=True)
@@ -28,21 +29,6 @@ class ProductSerializer(serializers.ModelSerializer):
     def calculate_tax(self, product: Product):
         return product.unit_price * Decimal(1.1)
     
-    # def validate(self, data):
-    #     if data['password'] != data['confirm_password']:
-    #         return serializers.ValidationError("'Password do not match!")
-    #     return data
-
-    # def create(self, validated_data):
-    #     product = Product(**validated_data)
-    #     product.other = 1
-    #     product.save()
-    #     return product
-    
-    # def update(self, instance, validated_data):
-    #     instance.unit_price = validated_data.get('unit_price')
-    #     instance.save()
-    #     return instance
 
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
@@ -115,9 +101,10 @@ class UpdateCartItemSerializer(serializers.ModelSerializer):
 
 class CustomerSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(read_only=True)
+    user = UserSerializer(read_only=True)
     class Meta:
         model = Customer 
-        fields = ['id', 'user_id', 'phone','dob', 'membership']
+        fields = ['id', 'user_id', 'phone', 'dob', 'membership', 'user']
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product = SimpleProductSerializer()
@@ -125,23 +112,30 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem 
         fields = ['id', 'product', 'unit_price', 'quantity']
 
+class OrderSerializer(serializers.ModelSerializer): 
+    items = OrderItemSerializer(many=True) 
+     
+    class Meta: 
+        model = Order 
+        fields = ['id', 'customer', 'placed_at', 'payment_status', 'delivery_status', 
+                  'first_name', 'last_name', 'street', 'city', 'zip_code', 'phone', 'items']
 
-class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True)
-    
-    class Meta:
-        model = Order
-        fields = ['id', 'customer', 'placed_at', 'payment_status', 'items']
+class UpdateOrderSerializer(serializers.ModelSerializer): 
+    class Meta: 
+        model = Order 
+        fields = ['payment_status', 'delivery_status']
+        
 
-class UpdateOrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Order
-        fields = ['payment_status']
-
-class CreateOrderSerializer(serializers.Serializer):
+class CreateOrderSerializer(serializers.Serializer): 
     cart_id = serializers.UUIDField() 
+    first_name = serializers.CharField(max_length=255)
+    last_name = serializers.CharField(max_length=255)
+    street = serializers.CharField(max_length=255)
+    city = serializers.CharField(max_length=255)
+    zip_code = serializers.CharField(max_length=255)
+    phone = serializers.CharField(max_length=255)
 
-    def validate_cart_id(self, cart_id):                                    # validation
+    def validate_cart_id(self, cart_id):                                    
         if not Cart.objects.filter(pk=cart_id).exists():
             raise serializers.ValidationError('No cart with the given ID was found.')
         if CartItem.objects.filter(cart_id=cart_id).count() == 0:
@@ -150,25 +144,31 @@ class CreateOrderSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         with transaction.atomic():
-
             cart_id = self.validated_data['cart_id']
+            customer = Customer.objects.get(user_id=self.context['user_id'])
+            
+            # Saving address when ordered
+            order = Order.objects.create(
+                customer=customer,
+                first_name=self.validated_data['first_name'],
+                last_name=self.validated_data['last_name'],
+                street=self.validated_data['street'],
+                city=self.validated_data['city'],
+                zip_code=self.validated_data['zip_code'],
+                phone=self.validated_data['phone']
+            )
 
-            customer = Customer.objects.get(user_id = self.context['user_id'])
-            order = Order.objects.create(customer=customer)
-
-            cart_items = CartItem.objects.select_related('product').filter(cart_id = cart_id)
+            cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)
             order_items = [ 
                 OrderItem(
-                    order = order,
-                    product = item.product,
-                    unit_price = item.product.unit_price,
-                    quantity = item.quantity,
-                )for item in cart_items
+                    order=order,
+                    product=item.product,
+                    unit_price=item.product.unit_price,
+                    quantity=item.quantity,
+                ) for item in cart_items
             ]
             OrderItem.objects.bulk_create(order_items)
-
             Cart.objects.filter(pk=cart_id).delete()
-
             order_created.send_robust(self.__class__, order=order)
 
             return order
