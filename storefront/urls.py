@@ -18,6 +18,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include 
+from core.views import CustomTokenObtainPairView
 import debug_toolbar
 
 
@@ -29,6 +30,7 @@ urlpatterns = [
     path('playground/', include('playground.urls')),
     path('store/', include('store.urls')),
     path('auth/', include('djoser.urls')),
+    path('auth/jwt/create/', CustomTokenObtainPairView.as_view(), name='custom_jwt_create'),
     path('auth/', include('djoser.urls.jwt')),
     path('__debug__/', include(debug_toolbar.urls)),
 ] 

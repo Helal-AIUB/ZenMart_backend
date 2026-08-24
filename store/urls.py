@@ -23,6 +23,10 @@ carts_router.register('items', views.CartItemViewSet, basename = 'cart-items-det
 
 urlpatterns = router.urls + products_router.urls + carts_router.urls
 
+urlpatterns = [
+    path('dashboard-stats/', views.DashboardStatsView.as_view(), name='dashboard-stats'),
+] + router.urls + products_router.urls + carts_router.urls
+
 # urlpatterns = [
 #     path('products/', views.ProductViewSet.as_view()),
 #     # path('products/<int:id>/', views.ProductDetail.as_view()),

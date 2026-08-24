@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 
 from store.permissions import IsAdminOrReadOnly
-
+from rest_framework.views import APIView
 from .filters import ProductFilter
 from .pagination import DefaultPagination
 from django_filters.rest_framework import DjangoFilterBackend
@@ -206,3 +206,20 @@ class ProductImageViewSet(ModelViewSet):
 
     def get_queryset(self):
         return ProductImage.objects.filter(product_id = self.kwargs['product_pk'])
+    
+
+class DashboardStatsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        total_products = Product.objects.count()
+        low_stock_alerts = Product.objects.filter(inventory__lt=10).count()
+        total_orders = Order.objects.count()
+        total_customers = Customer.objects.count()
+
+        return Response({
+            "total_products": total_products,
+            "low_stock_alerts": low_stock_alerts,
+            "total_orders": total_orders,
+            "total_customers": total_customers,
+        })
