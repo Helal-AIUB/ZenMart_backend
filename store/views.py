@@ -8,7 +8,7 @@ from .pagination import DefaultPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework import status
@@ -17,6 +17,10 @@ from rest_framework.mixins import CreateModelMixin, DestroyModelMixin, RetrieveM
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review
 from django.db.models import Count
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Sum, F
+from django.db.models.functions import TruncDate
 from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer
 
 class ProductViewSet(ModelViewSet):  
@@ -223,3 +227,27 @@ class DashboardStatsView(APIView):
             "total_orders": total_orders,
             "total_customers": total_customers,
         })
+        
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def revenue_analytics(request):
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
+    sales_data = (
+        OrderItem.objects
+        .filter(order__placed_at__gte=thirty_days_ago)
+        .exclude(order__delivery_status='Canceled')
+        .annotate(date=TruncDate('order__placed_at'))
+        .values('date')
+        .annotate(revenue=Sum(F('unit_price') * F('quantity')))
+        .order_by('date')
+    )
+    
+    formatted_data = []
+    for item in sales_data:
+        formatted_data.append({
+            "date": item['date'].strftime("%b %d"), # Example: Aug 24
+            "revenue": float(item['revenue'])
+        })
+        
+    return Response(formatted_data)

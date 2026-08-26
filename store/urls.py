@@ -25,6 +25,7 @@ urlpatterns = router.urls + products_router.urls + carts_router.urls
 
 urlpatterns = [
     path('dashboard-stats/', views.DashboardStatsView.as_view(), name='dashboard-stats'),
+    path('revenue-analytics/', views.revenue_analytics, name='revenue-analytics'),
 ] + router.urls + products_router.urls + carts_router.urls
 
 # urlpatterns = [
