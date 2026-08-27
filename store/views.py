@@ -15,13 +15,13 @@ from rest_framework import status
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.mixins import CreateModelMixin, DestroyModelMixin, RetrieveModelMixin, UpdateModelMixin
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
-from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review
+from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review, StoreSettings
 from django.db.models import Count
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db.models.functions import TruncDate
-from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer
+from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer, StoreSettingsSerializer
 
 class ProductViewSet(ModelViewSet):  
     queryset = Product.objects.prefetch_related('images').all()
@@ -205,3 +205,25 @@ class OrderItemViewSet(ModelViewSet):
 
     def get_queryset(self):
         return OrderItem.objects.filter(order_id=self.kwargs['order_pk'])
+
+
+class StoreSettingsView(APIView):
+    # permission_classes = [IsAdminUser]
+    
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    def get(self, request):
+        settings = StoreSettings.load()
+        serializer = StoreSettingsSerializer(settings)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        settings = StoreSettings.load()
+        serializer = StoreSettingsSerializer(settings, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

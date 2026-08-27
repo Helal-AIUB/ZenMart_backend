@@ -115,6 +115,7 @@ class Order(models.Model):
     city = models.CharField(max_length=255, null=True, blank=True)
     zip_code = models.CharField(max_length=255, null=True, blank=True)
     phone = models.CharField(max_length=255, null=True, blank=True)
+    delivery_charge = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT) 
  
@@ -155,3 +156,21 @@ class Review(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
     date = models.DateField(auto_now_add = True)
+
+class StoreSettings(models.Model):
+    store_name = models.CharField(max_length=255, default="Petora BD")
+    support_email = models.EmailField(default="support@petorabd.com")
+    contact_phone = models.CharField(max_length=20, blank=True)
+    address = models.TextField(blank=True)
+    delivery_charge_inside = models.DecimalField(max_digits=6, decimal_places=2, default=60.00)
+    delivery_charge_outside = models.DecimalField(max_digits=6, decimal_places=2, default=120.00)
+
+    def save(self, *args, **kwargs):
+        if not self.pk and StoreSettings.objects.exists():
+            return 
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

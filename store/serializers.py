@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
 from .signals import order_created
-from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review
+from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review, StoreSettings
 from core.serializers import UserSerializer
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -118,7 +118,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta: 
         model = Order 
         fields = ['id', 'customer', 'placed_at', 'payment_status', 'delivery_status', 
-                  'first_name', 'last_name', 'street', 'city', 'zip_code', 'phone', 'items']
+                  'first_name', 'last_name', 'street', 'city', 'zip_code', 'phone', 'delivery_charge', 'items']
 
 class UpdateOrderSerializer(serializers.ModelSerializer): 
     class Meta: 
@@ -134,6 +134,7 @@ class CreateOrderSerializer(serializers.Serializer):
     city = serializers.CharField(max_length=255)
     zip_code = serializers.CharField(max_length=255)
     phone = serializers.CharField(max_length=255)
+    delivery_charge = serializers.DecimalField(max_digits=6, decimal_places=2)
 
     def validate_cart_id(self, cart_id):                                    
         if not Cart.objects.filter(pk=cart_id).exists():
@@ -155,7 +156,8 @@ class CreateOrderSerializer(serializers.Serializer):
                 street=self.validated_data['street'],
                 city=self.validated_data['city'],
                 zip_code=self.validated_data['zip_code'],
-                phone=self.validated_data['phone']
+                phone=self.validated_data['phone'],
+                delivery_charge=self.validated_data['delivery_charge']
             )
 
             cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)
@@ -178,3 +180,9 @@ class UpdateOrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = ['quantity']
+        
+        
+class StoreSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoreSettings
+        fields = '__all__'
