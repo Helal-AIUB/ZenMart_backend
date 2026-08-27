@@ -26,6 +26,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 samesite='Lax'
             )
             
-            response.data = {"detail": "Successfully logged in."}
+            response.data = {
+                "access": access_token,
+                "refresh": refresh_token,
+                "detail": "Successfully logged in."
+            }
             
         return response
