@@ -21,16 +21,12 @@ products_router.register('images', views.ProductImageViewSet, basename= 'product
 carts_router = routers.NestedDefaultRouter(router, 'carts', lookup = 'cart')
 carts_router.register('items', views.CartItemViewSet, basename = 'cart-items-detail')
 
+orders_router = routers.NestedDefaultRouter(router, 'orders', lookup='order')
+orders_router.register('items', views.OrderItemViewSet, basename='order-items-detail')
+
 urlpatterns = router.urls + products_router.urls + carts_router.urls
 
 urlpatterns = [
     path('dashboard-stats/', views.DashboardStatsView.as_view(), name='dashboard-stats'),
     path('revenue-analytics/', views.revenue_analytics, name='revenue-analytics'),
-] + router.urls + products_router.urls + carts_router.urls
-
-# urlpatterns = [
-#     path('products/', views.ProductViewSet.as_view()),
-#     # path('products/<int:id>/', views.ProductDetail.as_view()),
-#     path('collections/', views.collection_list),
-#     path('collections/<int:pk>/', views.CollectionDetail.as_view(), name = 'collection-detail')
-# ]
+] + router.urls + products_router.urls + carts_router.urls + orders_router.urls

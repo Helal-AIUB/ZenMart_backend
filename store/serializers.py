@@ -174,4 +174,7 @@ class CreateOrderSerializer(serializers.Serializer):
             return order
 
 
-
+class UpdateOrderItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderItem
+        fields = ['quantity']
