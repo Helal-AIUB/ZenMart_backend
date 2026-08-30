@@ -24,8 +24,8 @@ from django.db.models.functions import TruncDate
 from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer, StoreSettingsSerializer, OrderItemSerializer
 
 class ProductViewSet(ModelViewSet):  
-    queryset = Product.objects.prefetch_related('images').all()
-    # queryset = Product.objects.all()
+    # Optimized: Fetches related collection and pre-fetches all images in just 2 queries
+    queryset = Product.objects.select_related('collection').prefetch_related('images').all()
     serializer_class = ProductSerializer
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -65,7 +65,6 @@ class CollectionViewSet(ModelViewSet):
 
 
 class ReviewViewSet(ModelViewSet):
-    # queryset = Review.objects.all()
     serializer_class = ReviewSerializer
 
     def get_queryset(self):
@@ -76,7 +75,8 @@ class ReviewViewSet(ModelViewSet):
 
 
 class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet):
-    queryset = Cart.objects.prefetch_related('items__product').all()
+    # Optimized: Fetches cart items, their products, and product images efficiently
+    queryset = Cart.objects.prefetch_related('items__product__images').all()
     serializer_class = CartSerializer
 
 class CartItemViewSet(ModelViewSet):
@@ -94,19 +94,21 @@ class CartItemViewSet(ModelViewSet):
         return {'cart_id': self.kwargs['cart_pk']}
 
     def get_queryset(self):
+        # Optimized: Added prefetch_related for images
         return CartItem.objects \
                     .filter(cart_id = self.kwargs['cart_pk']) \
-                    .select_related('product')
+                    .select_related('product') \
+                    .prefetch_related('product__images')
 
 class CustomerViewSet(ModelViewSet):
-    queryset = Customer.objects.all()
+    # Optimized: Fetches the associated user model instantly
+    queryset = Customer.objects.select_related('user').all()
     serializer_class = CustomerSerializer
     permission_classes = [IsAdminUser]
 
-
     @action(detail=False, methods = ['GET', 'PUT'], permission_classes=[IsAuthenticated])
     def me(self, request):
-        customer = Customer.objects.get(user_id=request.user.id)
+        customer = Customer.objects.select_related('user').get(user_id=request.user.id)
         if request.method == 'GET':
             serializer = CustomerSerializer(customer)
             return Response(serializer.data)
@@ -118,6 +120,7 @@ class CustomerViewSet(ModelViewSet):
 
 class OrderViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+    
     def get_permissions(self):
         if self.request.method in ['PATCH', 'DELETE']:
             if self.action == 'verify_payment':
@@ -142,11 +145,15 @@ class OrderViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff:
-            return Order.objects.all()
+        
+        # Highly Optimized: Joins customer and user, prefetches all order items and their products
+        queryset = Order.objects.select_related('customer', 'customer__user').prefetch_related('items__product')
 
-        customer_id = Customer.objects.only('id').get(user_id=self.request.user.id)
-        return Order.objects.filter(customer_id=customer_id)
+        if user.is_staff:
+            return queryset.all()
+
+        # Optimized: Filters directly using relation traversal, saves 1 extra database hit
+        return queryset.filter(customer__user_id=user.id)
     
     @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
     def verify_payment(self, request, pk=None):
@@ -235,7 +242,7 @@ def revenue_analytics(request):
     formatted_data = []
     for item in sales_data:
         formatted_data.append({
-            "date": item['date'].strftime("%b %d"), # Example: Aug 24
+            "date": item['date'].strftime("%b %d"), 
             "revenue": float(item['revenue'])
         })
         
@@ -249,11 +256,11 @@ class OrderItemViewSet(ModelViewSet):
         return UpdateOrderItemSerializer
 
     def get_queryset(self):
-        return OrderItem.objects.filter(order_id=self.kwargs['order_pk'])
+        # Optimized: Preloads the product for fast response
+        return OrderItem.objects.filter(order_id=self.kwargs['order_pk']).select_related('product')
 
 
 class StoreSettingsView(APIView):
-    # permission_classes = [IsAdminUser]
     
     def get_permissions(self):
         if self.request.method == 'GET':
