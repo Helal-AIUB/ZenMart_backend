@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
-
+from .models import Article, ArticleCategory
 from store.permissions import IsAdminOrReadOnly
 from rest_framework.views import APIView
 from .filters import ProductFilter
@@ -21,6 +21,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db.models.functions import TruncDate
+from .serializers import ArticleSerializer, ArticleCategorySerializer
 from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer, StoreSettingsSerializer, OrderItemSerializer
 
 class ProductViewSet(ModelViewSet):  
@@ -279,3 +280,27 @@ class StoreSettingsView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class ArticleCategoryViewSet(ModelViewSet):
+    queryset = ArticleCategory.objects.all()
+    serializer_class = ArticleCategorySerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+class ArticleViewSet(ModelViewSet):
+    queryset = Article.objects.select_related('category').prefetch_related('related_products').all()
+    serializer_class = ArticleSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['status', 'category']
+    search_fields = ['title', 'excerpt', 'content']
+    ordering_fields = ['created_at', 'views']
+    
+    # Custom API to increment view count
+    @action(detail=True, methods=['post'], permission_classes=[AllowAny])
+    def add_view(self, request, pk=None):
+        article = self.get_object()
+        article.views += 1
+        article.save()
+        return Response({'status': 'view added', 'views': article.views})

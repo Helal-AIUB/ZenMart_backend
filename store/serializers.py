@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
 from .signals import order_created
+from .models import Article, ArticleCategory
 from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review, StoreSettings
 from core.serializers import UserSerializer
 
@@ -188,3 +189,22 @@ class StoreSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = StoreSettings
         fields = '__all__'
+
+
+
+class ArticleCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ArticleCategory
+        fields = ['id', 'name', 'slug']
+
+class ArticleSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    
+    class Meta:
+        model = Article
+        fields = [
+            'id', 'title', 'slug', 'excerpt', 'content', 'category', 'category_name', 
+            'status', 'image', 'views', 'meta_title', 'meta_description', 
+            'created_at', 'updated_at', 'related_products'
+        ]
+        read_only_fields = ['slug', 'views', 'created_at', 'updated_at']

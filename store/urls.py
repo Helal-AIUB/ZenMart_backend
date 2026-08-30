@@ -11,6 +11,8 @@ router.register('collections', views.CollectionViewSet)
 router.register('carts', views.CartViewSet)
 router.register('customers', views.CustomerViewSet)
 router.register('orders', views.OrderViewSet, basename='orders')
+router.register('article-categories', views.ArticleCategoryViewSet, basename='article-categories')
+router.register('articles', views.ArticleViewSet, basename='articles')
 
 # pprint(router.urls)
 

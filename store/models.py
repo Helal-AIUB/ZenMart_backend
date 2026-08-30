@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.db import models
 from uuid import uuid4
+from django.utils.text import slugify
 from django.core.validators import MinValueValidator, FileExtensionValidator
 
 from store.validators import validate_file_size
@@ -186,3 +187,69 @@ class StoreSettings(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+    
+
+class ArticleCategory(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, max_length=255, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+class Article(models.Model):
+    STATUS_PUBLISHED = 'Published'
+    STATUS_DRAFT = 'Draft'
+    STATUS_SCHEDULED = 'Scheduled'
+    
+    STATUS_CHOICES = [
+        (STATUS_PUBLISHED, 'Published'),
+        (STATUS_DRAFT, 'Draft'),
+        (STATUS_SCHEDULED, 'Scheduled'),
+    ]
+
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, max_length=255, blank=True)
+    excerpt = models.TextField(max_length=500, help_text="Short summary for the card view")
+    content = models.TextField(help_text="Full HTML or Markdown content") # এখানে আমরা পরে রিচ-টেক্সট এডিটর কানেক্ট করব
+    
+    category = models.ForeignKey(ArticleCategory, on_delete=models.SET_NULL, null=True, related_name='articles')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT)
+    
+    image = models.ImageField(upload_to='articles/images/', null=True, blank=True)
+    views = models.PositiveIntegerField(default=0)
+    
+    # SEO Fields
+    meta_title = models.CharField(max_length=255, null=True, blank=True)
+    meta_description = models.TextField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Optional: Link to products (For smart tagging later)
+    related_products = models.ManyToManyField('Product', blank=True, related_name='featured_in_articles')
+
+    def save(self, *args, **kwargs):
+        if self.title and (not self.slug or self.slug == ""):
+            original_slug = slugify(self.title)
+            
+            if not original_slug:
+                original_slug = "article"
+                
+            slug = original_slug
+            counter = 1
+            while Article.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{original_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+    
+    class Meta:
+        ordering = ['-created_at']
