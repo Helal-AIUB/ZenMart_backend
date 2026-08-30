@@ -101,12 +101,24 @@ class Order(models.Model):
         (DELIVERY_STATUS_DELIVERED, 'Delivered'),
         (DELIVERY_STATUS_CANCELED, 'Canceled'),
     ]
+    
+    PAYMENT_METHOD_COD = 'COD'
+    PAYMENT_METHOD_BKASH = 'bKash'
+    PAYMENT_METHOD_NAGAD = 'Nagad'
+    PAYMENT_METHOD_CHOICES = [
+        (PAYMENT_METHOD_COD, 'Cash on Delivery'),
+        (PAYMENT_METHOD_BKASH, 'bKash'),
+        (PAYMENT_METHOD_NAGAD, 'Nagad'),
+    ]
  
     placed_at = models.DateTimeField(auto_now_add=True) 
     payment_status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_STATUS_PENDING) 
     
     # New Field for Tracking
     delivery_status = models.CharField(max_length=50, choices=DELIVERY_STATUS_CHOICES, default=DELIVERY_STATUS_PLACED) 
+    
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default=PAYMENT_METHOD_COD)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True)
     
     # Order Specific Shipping Address
     first_name = models.CharField(max_length=255, null=True, blank=True)

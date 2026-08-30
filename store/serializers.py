@@ -118,7 +118,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta: 
         model = Order 
         fields = ['id', 'customer', 'placed_at', 'payment_status', 'delivery_status', 
-                  'first_name', 'last_name', 'street', 'city', 'zip_code', 'phone', 'delivery_charge', 'items']
+                  'first_name', 'last_name', 'street', 'city', 'zip_code', 'phone', 'delivery_charge', 'payment_method', 'transaction_id', 'items']
 
 class UpdateOrderSerializer(serializers.ModelSerializer): 
     class Meta: 
@@ -135,6 +135,7 @@ class CreateOrderSerializer(serializers.Serializer):
     zip_code = serializers.CharField(max_length=255)
     phone = serializers.CharField(max_length=255)
     delivery_charge = serializers.DecimalField(max_digits=6, decimal_places=2)
+    payment_method = serializers.ChoiceField(choices=Order.PAYMENT_METHOD_CHOICES, default=Order.PAYMENT_METHOD_COD)
 
     def validate_cart_id(self, cart_id):                                    
         if not Cart.objects.filter(pk=cart_id).exists():
@@ -157,7 +158,8 @@ class CreateOrderSerializer(serializers.Serializer):
                 city=self.validated_data['city'],
                 zip_code=self.validated_data['zip_code'],
                 phone=self.validated_data['phone'],
-                delivery_charge=self.validated_data['delivery_charge']
+                delivery_charge=self.validated_data['delivery_charge'],
+                payment_method=self.validated_data.get('payment_method', Order.PAYMENT_METHOD_COD)
             )
 
             cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)

@@ -21,7 +21,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db.models.functions import TruncDate
-from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer, StoreSettingsSerializer
+from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer, StoreSettingsSerializer, OrderItemSerializer
 
 class ProductViewSet(ModelViewSet):  
     queryset = Product.objects.prefetch_related('images').all()
@@ -119,7 +119,9 @@ class CustomerViewSet(ModelViewSet):
 class OrderViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
     def get_permissions(self):
-        if self.request.method in ['PATCH', 'DELETE']:       # validate
+        if self.request.method in ['PATCH', 'DELETE']:
+            if self.action == 'verify_payment':
+                return [IsAuthenticated()]
             return [IsAdminUser()]
         return [IsAuthenticated()]
 
@@ -145,6 +147,49 @@ class OrderViewSet(ModelViewSet):
 
         customer_id = Customer.objects.only('id').get(user_id=self.request.user.id)
         return Order.objects.filter(customer_id=customer_id)
+    
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated])
+    def verify_payment(self, request, pk=None):
+        order = self.get_object()
+        
+        if not request.user.is_staff and order.customer.user_id != request.user.id:
+            return Response({'error': 'You do not have permission to verify this order.'}, status=status.HTTP_403_FORBIDDEN)
+
+        transaction_id = request.data.get('transaction_id')
+        if not transaction_id:
+            return Response({'error': 'Transaction ID is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.transaction_id = transaction_id
+        order.save()
+        
+        return Response({
+            'status': 'Payment verification submitted successfully.', 
+            'transaction_id': transaction_id
+        })
+        
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def add_item(self, request, pk=None):
+        order = self.get_object()
+        product_id = request.data.get('product_id')
+        quantity = int(request.data.get('quantity', 1))
+
+        if not product_id:
+            return Response({'error': 'Product ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        product = get_object_or_404(Product, pk=product_id)
+
+        if OrderItem.objects.filter(order=order, product=product).exists():
+            return Response({'error': 'Product is already in the order'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order_item = OrderItem.objects.create(
+            order=order,
+            product=product,
+            unit_price=product.unit_price,
+            quantity=quantity
+        )
+
+        serializer = OrderItemSerializer(order_item)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class ProductImageViewSet(ModelViewSet):
     serializer_class = ProductImageSerializer
