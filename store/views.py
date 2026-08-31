@@ -293,7 +293,7 @@ class ArticleViewSet(ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['status', 'category']
+    filterset_fields = ['status', 'category', 'slug']
     search_fields = ['title', 'excerpt', 'content']
     ordering_fields = ['created_at', 'views']
     
