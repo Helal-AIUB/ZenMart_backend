@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
+from rest_framework import generics
 from .models import Article, ArticleCategory
 from store.permissions import IsAdminOrReadOnly
 from rest_framework.views import APIView
@@ -261,25 +262,32 @@ class OrderItemViewSet(ModelViewSet):
         return OrderItem.objects.filter(order_id=self.kwargs['order_pk']).select_related('product')
 
 
-class StoreSettingsView(APIView):
+class StoreSettingsView(generics.RetrieveUpdateAPIView):
+    serializer_class = StoreSettingsSerializer
+
+    def get_object(self):
+        return StoreSettings.load()
+
+
+# class StoreSettingsView(APIView):
     
-    def get_permissions(self):
-        if self.request.method == 'GET':
-            return [AllowAny()]
-        return [IsAdminUser()]
+#     def get_permissions(self):
+#         if self.request.method == 'GET':
+#             return [AllowAny()]
+#         return [IsAdminUser()]
 
-    def get(self, request):
-        settings = StoreSettings.load()
-        serializer = StoreSettingsSerializer(settings)
-        return Response(serializer.data)
+#     def get(self, request):
+#         settings = StoreSettings.load()
+#         serializer = StoreSettingsSerializer(settings)
+#         return Response(serializer.data)
 
-    def patch(self, request):
-        settings = StoreSettings.load()
-        serializer = StoreSettingsSerializer(settings, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     def patch(self, request):
+#         settings = StoreSettings.load()
+#         serializer = StoreSettingsSerializer(settings, data=request.data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
 class ArticleCategoryViewSet(ModelViewSet):
