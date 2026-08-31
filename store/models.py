@@ -173,15 +173,15 @@ class Review(models.Model):
 class StoreSettings(models.Model):
     store_name = models.CharField(max_length=255, default="Petora BD")
     support_email = models.EmailField(default="support@petorabd.com")
-    contact_phone = models.CharField(max_length=20, blank=True, help_text="কাস্টমার কেয়ার বা হটলাইন নম্বর")
+    contact_phone = models.CharField(max_length=20, blank=True, help_text="hotline number")
     address = models.TextField(blank=True)
     delivery_charge_inside = models.DecimalField(max_digits=6, decimal_places=2, default=60.00)
     delivery_charge_outside = models.DecimalField(max_digits=6, decimal_places=2, default=120.00)
+    currency_symbol = models.CharField(max_length=5, default="৳", help_text="Ex: $, ৳, €, £")
 
     short_description = models.TextField(blank=True, default="Your trusted partner for premium pet care, food, and accessories.", help_text="লোগোর নিচে দেখানোর জন্য শর্ট টেক্সট")
     business_hours = models.CharField(max_length=255, blank=True, default="9:00 AM - 10:00 PM (Everyday)")
     
-    # সোশ্যাল মিডিয়া লিংক
     facebook_link = models.URLField(blank=True, help_text="Facebook Page URL")
     instagram_link = models.URLField(blank=True, help_text="Instagram Profile URL")
     youtube_link = models.URLField(blank=True, help_text="YouTube Channel URL")
