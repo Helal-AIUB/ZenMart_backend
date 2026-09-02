@@ -13,6 +13,7 @@ router.register('customers', views.CustomerViewSet)
 router.register('orders', views.OrderViewSet, basename='orders')
 router.register('article-categories', views.ArticleCategoryViewSet, basename='article-categories')
 router.register('articles', views.ArticleViewSet, basename='articles')
+router.register('notifications', views.NotificationViewSet, basename='notifications')
 
 # pprint(router.urls)
 

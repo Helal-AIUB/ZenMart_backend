@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from rest_framework import generics
-from .models import Article, ArticleCategory
+from .models import Article, ArticleCategory, Notification
 from store.permissions import IsAdminOrReadOnly
 from rest_framework.views import APIView
 from .filters import ProductFilter
@@ -22,7 +22,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db.models.functions import TruncDate
-from .serializers import ArticleSerializer, ArticleCategorySerializer
+from .serializers import ArticleSerializer, ArticleCategorySerializer, NotificationSerializer
 from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer, StoreSettingsSerializer, OrderItemSerializer
 
 class ProductViewSet(ModelViewSet):  
@@ -312,3 +312,25 @@ class ArticleViewSet(ModelViewSet):
         article.views += 1
         article.save()
         return Response({'status': 'view added', 'views': article.views})
+    
+class NotificationViewSet(ModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAdminUser]  
+
+    @action(detail=False, methods=['GET'])
+    def unread_count(self, request):
+        count = Notification.objects.filter(is_read=False).count()
+        return Response({'unread_count': count})
+        
+    @action(detail=True, methods=['PATCH'])
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'marked as read'})
+        
+    @action(detail=False, methods=['POST'])
+    def mark_all_read(self, request):
+        Notification.objects.filter(is_read=False).update(is_read=True)
+        return Response({'status': 'all notifications marked as read'})

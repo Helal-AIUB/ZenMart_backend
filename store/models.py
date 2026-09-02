@@ -38,6 +38,24 @@ class Product(models.Model):
     
     class Meta:
         ordering = ['title']
+        
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        
+        if self.inventory < 10:
+            unread_alert_exists = Notification.objects.filter(
+                notification_type=Notification.TYPE_STOCK,
+                product=self,
+                is_read=False
+            ).exists()
+            
+            if not unread_alert_exists:
+                Notification.objects.create(
+                    notification_type=Notification.TYPE_STOCK,
+                    title="Low Stock Alert",
+                    message=f"{self.title} is running low on stock ({self.inventory} left).",
+                    product=self
+                )
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
@@ -265,3 +283,28 @@ class Article(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+        
+class Notification(models.Model):
+    TYPE_ORDER = 'order'
+    TYPE_STOCK = 'stock'
+    
+    TYPE_CHOICES = [
+        (TYPE_ORDER, 'New Order'),
+        (TYPE_STOCK, 'Low Stock Alert'),
+    ]
+    
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    title = models.CharField(max_length=255)
+    message = models.TextField(blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Optional references (to redirect admin directly to the specific item)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_notification_type_display()} - {self.title}"

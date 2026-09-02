@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
 from .signals import order_created
-from .models import Article, ArticleCategory
+from .models import Article, ArticleCategory, Notification
 from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review, StoreSettings
 from core.serializers import UserSerializer
 
@@ -174,6 +174,13 @@ class CreateOrderSerializer(serializers.Serializer):
             ]
             OrderItem.objects.bulk_create(order_items)
             Cart.objects.filter(pk=cart_id).delete()
+            
+            Notification.objects.create(
+                notification_type=Notification.TYPE_ORDER,
+                title=f"New Order #{order.id}",
+                message=f"{order.first_name} {order.last_name} has placed a new order.",
+                order=order
+            )
             order_created.send_robust(self.__class__, order=order)
 
             return order
@@ -208,3 +215,8 @@ class ArticleSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'related_products'
         ]
         read_only_fields = ['slug', 'views', 'created_at', 'updated_at']
+        
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'notification_type', 'title', 'message', 'is_read', 'created_at', 'order', 'product']
