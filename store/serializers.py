@@ -1,8 +1,9 @@
 from decimal import Decimal
 from django.db import transaction
 from rest_framework import serializers
+from django.utils import timezone
 from .signals import order_created
-from .models import Article, ArticleCategory, Notification
+from .models import Article, ArticleCategory, Notification, Coupon
 from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review, StoreSettings
 from core.serializers import UserSerializer
 
@@ -67,6 +68,80 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart
         fields = ['id', 'items', 'total_price']
 
+class CouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = '__all__'
+
+class CouponValidateSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=50)
+    cart_id = serializers.UUIDField()
+
+    def validate(self, attrs):
+        code = attrs.get('code')
+        cart_id = attrs.get('cart_id')
+        now = timezone.now()
+
+        try:
+            coupon = Coupon.objects.get(code__iexact=code)
+        except Coupon.DoesNotExist:
+            raise serializers.ValidationError({"code": "Invalid coupon code."})
+
+        if not coupon.active:
+            raise serializers.ValidationError({"code": "This coupon is no longer active."})
+        
+        if not (coupon.valid_from <= now <= coupon.valid_to):
+            raise serializers.ValidationError({"code": "This coupon is expired or not yet valid."})
+        
+        if coupon.usage_limit and coupon.used_count >= coupon.usage_limit:
+            raise serializers.ValidationError({"code": "This coupon usage limit has been reached."})
+
+        # Validate against cart items
+        try:
+            cart = Cart.objects.prefetch_related('items__product__collection').get(id=cart_id)
+        except Cart.DoesNotExist:
+            raise serializers.ValidationError({"cart_id": "Invalid cart ID."})
+
+        cart_items = cart.items.all()
+        if not cart_items:
+            raise serializers.ValidationError({"cart_id": "Your cart is empty."})
+
+        # Calculate eligible subtotal (only items that match the coupon's scope)
+        eligible_subtotal = 0
+        for item in cart_items:
+            product = item.product
+            is_eligible = False
+            
+            if coupon.is_global:
+                is_eligible = True
+            elif coupon.applicable_products.filter(id=product.id).exists():
+                is_eligible = True
+            elif coupon.applicable_collections.filter(id=product.collection_id).exists():
+                is_eligible = True
+            
+            if is_eligible:
+                eligible_subtotal += (product.unit_price * item.quantity)
+
+        if eligible_subtotal == 0:
+            raise serializers.ValidationError({"code": "This coupon is not applicable to the items in your cart."})
+
+        if eligible_subtotal < coupon.min_purchase_amount:
+            raise serializers.ValidationError({"code": f"Minimum eligible purchase amount of ${coupon.min_purchase_amount} required."})
+
+        # Calculate final discount
+        discount = 0
+        if coupon.discount_type == Coupon.DISCOUNT_TYPE_PERCENTAGE:
+            discount = (eligible_subtotal * coupon.discount_amount) / 100
+        else:
+            discount = coupon.discount_amount
+            # Ensure discount doesn't exceed the eligible subtotal
+            if discount > eligible_subtotal:
+                discount = eligible_subtotal 
+
+        attrs['coupon'] = coupon
+        attrs['discount'] = discount
+        return attrs
+
 class AddCartItemSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField()
 
@@ -115,12 +190,14 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer): 
     items = OrderItemSerializer(many=True) 
+    coupon_code = serializers.CharField(source='coupon.code', read_only=True) 
      
     class Meta: 
         model = Order 
         fields = ['id', 'customer', 'placed_at', 'payment_status', 'delivery_status', 
-                  'first_name', 'last_name', 'street', 'city', 'zip_code', 'phone', 'delivery_charge', 'payment_method', 'transaction_id', 'items']
-
+                  'first_name', 'last_name', 'street', 'city', 'zip_code', 'phone', 
+                  'delivery_charge', 'payment_method', 'transaction_id', 'items', 
+                  'coupon_code', 'discount_amount'] 
 class UpdateOrderSerializer(serializers.ModelSerializer): 
     class Meta: 
         model = Order 
@@ -137,6 +214,7 @@ class CreateOrderSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=255)
     delivery_charge = serializers.DecimalField(max_digits=6, decimal_places=2)
     payment_method = serializers.ChoiceField(choices=Order.PAYMENT_METHOD_CHOICES, default=Order.PAYMENT_METHOD_COD)
+    coupon_code = serializers.CharField(max_length=50, required=False, allow_blank=True)
 
     def validate_cart_id(self, cart_id):                                    
         if not Cart.objects.filter(pk=cart_id).exists():
@@ -150,6 +228,19 @@ class CreateOrderSerializer(serializers.Serializer):
             cart_id = self.validated_data['cart_id']
             customer = Customer.objects.get(user_id=self.context['user_id'])
             
+            coupon_code = self.validated_data.get('coupon_code')
+            applied_coupon = None
+            discount_amount = 0
+
+            if coupon_code:
+                # Validate using the serializer we just made
+                coupon_serializer = CouponValidateSerializer(data={'code': coupon_code, 'cart_id': cart_id})
+                if coupon_serializer.is_valid():
+                    applied_coupon = coupon_serializer.validated_data['coupon']
+                    discount_amount = coupon_serializer.validated_data['discount']
+                    applied_coupon.used_count += 1
+                    applied_coupon.save()
+            
             # Saving address when ordered
             order = Order.objects.create(
                 customer=customer,
@@ -160,7 +251,9 @@ class CreateOrderSerializer(serializers.Serializer):
                 zip_code=self.validated_data['zip_code'],
                 phone=self.validated_data['phone'],
                 delivery_charge=self.validated_data['delivery_charge'],
-                payment_method=self.validated_data.get('payment_method', Order.PAYMENT_METHOD_COD)
+                payment_method=self.validated_data.get('payment_method', Order.PAYMENT_METHOD_COD),
+                coupon=applied_coupon,
+                discount_amount=discount_amount
             )
 
             cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)

@@ -95,6 +95,38 @@ class Customer(models.Model):
         ordering = ['user__first_name', 'user__last_name']
 
 
+class Coupon(models.Model):
+    DISCOUNT_TYPE_PERCENTAGE = 'percentage'
+    DISCOUNT_TYPE_FIXED = 'fixed'
+    DISCOUNT_TYPE_CHOICES = [
+        (DISCOUNT_TYPE_PERCENTAGE, 'Percentage (%)'),
+        (DISCOUNT_TYPE_FIXED, 'Fixed Amount'),
+    ]
+
+    code = models.CharField(max_length=50, unique=True, help_text="e.g. PETORA20, WINTER50")
+    discount_type = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES, default=DISCOUNT_TYPE_PERCENTAGE)
+    discount_amount = models.DecimalField(max_digits=6, decimal_places=2)
+    min_purchase_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0.00, help_text="Minimum cart value required")
+    
+    # 🟢 Coupon Scope (All, Specific Collections, or Specific Products)
+    is_global = models.BooleanField(default=True, help_text="If True, applies to all products.")
+    applicable_collections = models.ManyToManyField(Collection, blank=True, related_name='coupons')
+    applicable_products = models.ManyToManyField(Product, blank=True, related_name='coupons')
+
+    active = models.BooleanField(default=True)
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField()
+    
+    usage_limit = models.PositiveIntegerField(null=True, blank=True, help_text="Maximum number of times this coupon can be used globally")
+    used_count = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.code
+        
+    class Meta:
+        ordering = ['-valid_to']
+
+
 class Order(models.Model): 
     # Payment Status
     PAYMENT_STATUS_PENDING = 'P' 
@@ -149,6 +181,9 @@ class Order(models.Model):
     delivery_charge = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT) 
+    
+    coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
+    discount_amount = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
  
     class Meta: 
         permissions = [ 
@@ -308,3 +343,4 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.get_notification_type_display()} - {self.title}"
+    

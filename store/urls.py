@@ -14,6 +14,7 @@ router.register('orders', views.OrderViewSet, basename='orders')
 router.register('article-categories', views.ArticleCategoryViewSet, basename='article-categories')
 router.register('articles', views.ArticleViewSet, basename='articles')
 router.register('notifications', views.NotificationViewSet, basename='notifications')
+router.register('coupons', views.CouponViewSet, basename='coupons')
 
 # pprint(router.urls)
 

@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from rest_framework import generics
-from .models import Article, ArticleCategory, Notification
+from .models import Article, ArticleCategory, Notification, Coupon
 from store.permissions import IsAdminOrReadOnly
 from rest_framework.views import APIView
 from .filters import ProductFilter
@@ -22,7 +22,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Sum, F
 from django.db.models.functions import TruncDate
-from .serializers import ArticleSerializer, ArticleCategorySerializer, NotificationSerializer
+from .serializers import ArticleSerializer, ArticleCategorySerializer, NotificationSerializer, CouponSerializer, CouponValidateSerializer
 from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer, StoreSettingsSerializer, OrderItemSerializer
 
 class ProductViewSet(ModelViewSet):  
@@ -334,3 +334,24 @@ class NotificationViewSet(ModelViewSet):
     def mark_all_read(self, request):
         Notification.objects.filter(is_read=False).update(is_read=True)
         return Response({'status': 'all notifications marked as read'})
+    
+class CouponViewSet(ModelViewSet):
+    queryset = Coupon.objects.all()
+    serializer_class = CouponSerializer
+    
+    def get_permissions(self):
+        if self.action == 'validate':
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    @action(detail=False, methods=['post'])
+    def validate(self, request):
+        serializer = CouponValidateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        return Response({
+            "status": "success",
+            "message": "Coupon applied successfully!",
+            "discount_amount": serializer.validated_data['discount'],
+            "coupon_code": serializer.validated_data['coupon'].code
+        }, status=status.HTTP_200_OK)
