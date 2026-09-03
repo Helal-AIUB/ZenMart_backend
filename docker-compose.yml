@@ -1,0 +1,17 @@
+services:
+  backend:
+    build: .
+    container_name: petorabd_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    container_name: petorabd_redis
+    ports:
+      - "6379:6379"
