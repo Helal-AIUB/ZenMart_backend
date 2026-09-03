@@ -50,7 +50,8 @@ INSTALLED_APPS = [
     'store',
     'tags',
     'likes',
-    'core'
+    'core',
+    'reports'
 ]
 
 MIDDLEWARE = [

@@ -28,11 +28,9 @@ carts_router.register('items', views.CartItemViewSet, basename = 'cart-items-det
 orders_router = routers.NestedDefaultRouter(router, 'orders', lookup='order')
 orders_router.register('items', views.OrderItemViewSet, basename='order-items-detail')
 
-urlpatterns = router.urls + products_router.urls + carts_router.urls
 
 urlpatterns = [
     path('dashboard-stats/', views.DashboardStatsView.as_view(), name='dashboard-stats'),
     path('revenue-analytics/', views.revenue_analytics, name='revenue-analytics'),
-    path('settings/', views.StoreSettingsView.as_view(), name='store-settings'),
     path('settings/', views.StoreSettingsView.as_view(), name='store-settings'),
 ] + router.urls + products_router.urls + carts_router.urls + orders_router.urls

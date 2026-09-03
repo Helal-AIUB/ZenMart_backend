@@ -33,6 +33,7 @@ urlpatterns = [
     path('auth/jwt/create/', CustomTokenObtainPairView.as_view(), name='custom_jwt_create'),
     path('auth/', include('djoser.urls.jwt')),
     path('__debug__/', include(debug_toolbar.urls)),
+    path('reports/', include('reports.urls')),
 ] 
 
 if settings.DEBUG:
