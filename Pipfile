@@ -37,6 +37,9 @@ django-silk = "*"
 django-redis = "*"
 whitenoise = "*"
 gunicorn = "*"
+cloudinary = "*"
+django-cloudinary-storage = "*"
+python-dotenv = "*"
 
 [dev-packages]
 pytest = "*"

@@ -14,6 +14,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework import status
+from redis.exceptions import ConnectionError as RedisConnectionError
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.mixins import CreateModelMixin, DestroyModelMixin, RetrieveModelMixin, UpdateModelMixin
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -21,10 +22,12 @@ from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collect
 from django.db.models import Count
 from django.utils import timezone
 from datetime import timedelta
+from django.core.cache import cache
 from django.db.models import Sum, F
 from django.db.models.functions import TruncDate
 from .serializers import ArticleSerializer, ArticleCategorySerializer, NotificationSerializer, CouponSerializer, CouponValidateSerializer
 from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CreateOrderSerializer, CustomerSerializer, OrderSerializer, UpdateOrderItemSerializer, ProductImageSerializer, ProductSerializer, CollectionSerializer, ReviewSerializer, UpdateCartItemSerializer, UpdateOrderSerializer, StoreSettingsSerializer, OrderItemSerializer
+
 
 class ProductViewSet(ModelViewSet):  
     # Optimized: Fetches related collection and pre-fetches all images in just 2 queries
@@ -215,23 +218,38 @@ class DashboardStatsView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        total_products = Product.objects.count()
-        low_stock_alerts = Product.objects.filter(inventory__lt=10).count()
-        total_orders = Order.objects.count()
-        total_customers = Customer.objects.count()
+        try:
+            cached_stats = cache.get('admin_dashboard_stats')
+            if cached_stats:
+                return Response(cached_stats)
+        except (RedisConnectionError, Exception):
+            pass 
 
-        return Response({
-            "total_products": total_products,
-            "low_stock_alerts": low_stock_alerts,
-            "total_orders": total_orders,
-            "total_customers": total_customers,
-        })
+        stats_data = {
+            "total_products": Product.objects.count(),
+            "low_stock_alerts": Product.objects.filter(inventory__lt=10).count(),
+            "total_orders": Order.objects.count(),
+            "total_customers": Customer.objects.count(),
+        }
+        
+        try:
+            cache.set('admin_dashboard_stats', stats_data, timeout=900)
+        except (RedisConnectionError, Exception):
+            pass
+
+        return Response(stats_data)
         
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def revenue_analytics(request):
+    try:
+        cached_revenue = cache.get('admin_revenue_analytics')
+        if cached_revenue:
+            return Response(cached_revenue)
+    except (RedisConnectionError, Exception):
+        pass
+        
     thirty_days_ago = timezone.now() - timedelta(days=30)
-    
     sales_data = (
         OrderItem.objects
         .filter(order__placed_at__gte=thirty_days_ago)
@@ -249,6 +267,11 @@ def revenue_analytics(request):
             "revenue": float(item['revenue'])
         })
         
+    try:
+        cache.set('admin_revenue_analytics', formatted_data, timeout=900)
+    except (RedisConnectionError, Exception):
+        pass
+
     return Response(formatted_data)
 
 class OrderItemViewSet(ModelViewSet):
