@@ -149,6 +149,31 @@ class AddCartItemSerializer(serializers.ModelSerializer):
         if not Product.objects.filter(pk=value).exists():
             raise serializers.ValidationError('No Product with the given ID was found.')
         return value
+    
+    def validate(self, data):
+        product_id = data.get('product_id')
+        quantity = data.get('quantity', 1)
+        
+        if quantity <= 0:
+            raise serializers.ValidationError({'quantity': 'Quantity must be greater than zero.'})
+
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return data
+
+        cart_id = self.context.get('cart_id')
+        existing_quantity = 0
+        if cart_id:
+            cart_item = CartItem.objects.filter(cart_id=cart_id, product_id=product_id).first()
+            if cart_item:
+                existing_quantity = cart_item.quantity
+
+        total_requested = existing_quantity + quantity
+        if product.inventory < total_requested:
+            raise serializers.ValidationError({'quantity': f'Not enough inventory available. Only {product.inventory} left.'})
+
+        return data
 
     def save(self, **kwargs):
         cart_id = self.context['cart_id']
@@ -221,6 +246,12 @@ class CreateOrderSerializer(serializers.Serializer):
             raise serializers.ValidationError('No cart with the given ID was found.')
         if CartItem.objects.filter(cart_id=cart_id).count() == 0:
             raise serializers.ValidationError('The cart is empty.')
+            
+        cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)
+        for item in cart_items:
+            if item.product.inventory < item.quantity:
+                raise serializers.ValidationError(f'Product "{item.product.title}" has only {item.product.inventory} items left in stock.')
+                
         return cart_id
 
     def save(self, **kwargs):
@@ -233,7 +264,6 @@ class CreateOrderSerializer(serializers.Serializer):
             discount_amount = 0
 
             if coupon_code:
-                # Validate using the serializer we just made
                 coupon_serializer = CouponValidateSerializer(data={'code': coupon_code, 'cart_id': cart_id})
                 if coupon_serializer.is_valid():
                     applied_coupon = coupon_serializer.validated_data['coupon']
@@ -241,7 +271,6 @@ class CreateOrderSerializer(serializers.Serializer):
                     applied_coupon.used_count += 1
                     applied_coupon.save()
             
-            # Saving address when ordered
             order = Order.objects.create(
                 customer=customer,
                 first_name=self.validated_data['first_name'],
@@ -257,14 +286,20 @@ class CreateOrderSerializer(serializers.Serializer):
             )
 
             cart_items = CartItem.objects.select_related('product').filter(cart_id=cart_id)
-            order_items = [ 
-                OrderItem(
-                    order=order,
-                    product=item.product,
-                    unit_price=item.product.unit_price,
-                    quantity=item.quantity,
-                ) for item in cart_items
-            ]
+            order_items = []
+            
+            for item in cart_items:
+                order_items.append(
+                    OrderItem(
+                        order=order,
+                        product=item.product,
+                        unit_price=item.product.unit_price,
+                        quantity=item.quantity,
+                    )
+                )
+                item.product.inventory -= item.quantity
+                item.product.save()
+
             OrderItem.objects.bulk_create(order_items)
             Cart.objects.filter(pk=cart_id).delete()
             
