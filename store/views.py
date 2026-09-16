@@ -1,7 +1,7 @@
 import csv
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
-from rest_framework import generics
+from rest_framework import generics, permissions
 from .models import Article, ArticleCategory, Notification, Coupon
 from store.permissions import IsAdminOrReadOnly
 from rest_framework.views import APIView
@@ -9,6 +9,7 @@ from .filters import ProductFilter
 from .pagination import DefaultPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -78,6 +79,31 @@ class ReviewViewSet(ModelViewSet):
 
     def get_serializer_context(self):
         return {'product_id': self.kwargs['product_pk']}
+    
+
+class ReviewCreateAPIView(generics.CreateAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        product = serializer.validated_data['product']
+
+        review_exists = Review.objects.filter(user=user, product=product).exists()
+        if review_exists:
+            raise ValidationError({"detail": "You have already reviewed this product."})
+
+        # Ensure you replace 'OrderItem' and 'status' with your actual model/field names
+        has_purchased = OrderItem.objects.filter(
+            order__user=user,
+            order__status='Delivered', 
+            product=product
+        ).exists()
+
+        if not has_purchased:
+            raise ValidationError({"detail": "You can only review products you have purchased and received."})
+
+        serializer.save(user=user)
 
 
 class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet):

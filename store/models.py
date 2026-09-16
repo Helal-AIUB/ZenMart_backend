@@ -1,9 +1,12 @@
 from django.conf import settings
 from django.contrib import admin
 from django.db import models
+from django.utils import timezone
 from uuid import uuid4
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from django.utils.text import slugify
-from django.core.validators import MinValueValidator, FileExtensionValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 from store.validators import validate_file_size
 
@@ -32,6 +35,8 @@ class Product(models.Model):
     last_update = models.DateTimeField(auto_now=True)
     collection = models.ForeignKey(Collection, on_delete=models.PROTECT)
     promotions =  models.ManyToManyField(Promotion, blank = True)
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
+    total_reviews = models.PositiveIntegerField(default=0)
 
     def __str__(self) -> str:
         return self.title
@@ -218,15 +223,36 @@ class CartItem(models.Model):
         unique_together = [['cart','product']]
 
 class Review(models.Model):
-    product =  models.ForeignKey(Product, on_delete = models.CASCADE, related_name = 'reviews' )
-    name = models.CharField(max_length=255)
-    description = models.TextField()
-    date = models.DateField(auto_now_add = True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, default=1)
+    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], default=5)
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(default=timezone.now) 
+
+    class Meta:
+        unique_together = ('product', 'user') 
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.product.name} - {self.rating} Stars"
+
+@receiver(post_save, sender=Review)
+@receiver(post_delete, sender=Review)
+def update_product_rating(sender, instance, **kwargs):
+    product = instance.product
+    aggregates = product.reviews.aggregate(
+        avg_rating=Avg('rating'),
+        count=models.Count('id')
+    )
+    product.average_rating = aggregates['avg_rating'] or 0.00
+    product.total_reviews = aggregates['count'] or 0
+    product.save(update_fields=['average_rating', 'total_reviews'])
 
 class StoreSettings(models.Model):
     store_name = models.CharField(max_length=255, default="Petora BD")
     support_email = models.EmailField(default="support@petorabd.com")
     contact_phone = models.CharField(max_length=20, blank=True, help_text="hotline number")
+    whatsapp_number = models.CharField(max_length=20, blank=True, null=True, help_text="e.g. 8801xxxxxxxxx (without +)")
     address = models.TextField(blank=True)
     delivery_charge_inside = models.DecimalField(max_digits=6, decimal_places=2, default=60.00)
     delivery_charge_outside = models.DecimalField(max_digits=6, decimal_places=2, default=120.00)

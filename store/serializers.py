@@ -33,13 +33,12 @@ class ProductSerializer(serializers.ModelSerializer):
     
 
 class ReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+
     class Meta:
         model = Review
-        fields = ['id', 'date', 'name', 'description']
-
-    def create(self, validated_data):
-        product_id = self.context['product_id']
-        return Review.objects.create(product_id = product_id, **validated_data)
+        fields = ['id', 'product', 'user_name', 'rating', 'comment', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 class SimpleProductSerializer(serializers.ModelSerializer):
     class Meta:
