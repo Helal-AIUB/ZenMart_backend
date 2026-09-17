@@ -253,6 +253,7 @@ class StoreSettings(models.Model):
     support_email = models.EmailField(default="support@petorabd.com")
     contact_phone = models.CharField(max_length=20, blank=True, help_text="hotline number")
     whatsapp_number = models.CharField(max_length=20, blank=True, null=True, help_text="e.g. 8801xxxxxxxxx (without +)")
+    messenger_link = models.URLField(blank=True, null=True, help_text="e.g. https://m.me/yourpage")
     address = models.TextField(blank=True)
     delivery_charge_inside = models.DecimalField(max_digits=6, decimal_places=2, default=60.00)
     delivery_charge_outside = models.DecimalField(max_digits=6, decimal_places=2, default=120.00)
