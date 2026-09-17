@@ -18,7 +18,7 @@ from rest_framework import status
 from redis.exceptions import ConnectionError as RedisConnectionError
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.mixins import CreateModelMixin, DestroyModelMixin, RetrieveModelMixin, UpdateModelMixin
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
 from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collection, ProductImage, Review, StoreSettings
 from django.db.models import Count
 from django.utils import timezone
@@ -73,12 +73,32 @@ class CollectionViewSet(ModelViewSet):
 
 class ReviewViewSet(ModelViewSet):
     serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        return Review.objects.filter(product_id = self.kwargs['product_pk'])
+        return Review.objects.filter(product_id=self.kwargs['product_pk'])
 
     def get_serializer_context(self):
         return {'product_id': self.kwargs['product_pk']}
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        product_id = self.kwargs['product_pk']
+
+        review_exists = Review.objects.filter(user=user, product_id=product_id).exists()
+        if review_exists:
+            raise ValidationError({"detail": "You have already reviewed this product."})
+
+        has_purchased = OrderItem.objects.filter(
+            product_id=product_id,
+            order__customer__user=user,
+            order__delivery_status='Delivered'
+        ).exists()
+
+        if not has_purchased:
+            raise ValidationError({"detail": "You can only review products you have purchased and received."})
+
+        serializer.save(user=user, product_id=product_id)
     
 
 class ReviewCreateAPIView(generics.CreateAPIView):
