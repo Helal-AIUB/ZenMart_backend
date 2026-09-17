@@ -265,6 +265,9 @@ class StoreSettings(models.Model):
     facebook_link = models.URLField(blank=True, help_text="Facebook Page URL")
     instagram_link = models.URLField(blank=True, help_text="Instagram Profile URL")
     youtube_link = models.URLField(blank=True, help_text="YouTube Channel URL")
+    
+    google_analytics_id = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. G-XXXXXXXXXX")
+    meta_pixel_id = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. 123456789012345")
 
     def save(self, *args, **kwargs):
         if not self.pk and StoreSettings.objects.exists():
