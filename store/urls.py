@@ -1,5 +1,6 @@
 from django.urls import path 
 from rest_framework_nested import routers
+from .views import GlobalReviewViewSet
 from . import views 
 # from pprint import pprint
 
@@ -15,6 +16,7 @@ router.register('article-categories', views.ArticleCategoryViewSet, basename='ar
 router.register('articles', views.ArticleViewSet, basename='articles')
 router.register('notifications', views.NotificationViewSet, basename='notifications')
 router.register('coupons', views.CouponViewSet, basename='coupons')
+router.register('reviews', views.GlobalReviewViewSet, basename='all-reviews')
 
 # pprint(router.urls)
 

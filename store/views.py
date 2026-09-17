@@ -11,6 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
@@ -125,6 +126,12 @@ class ReviewCreateAPIView(generics.CreateAPIView):
 
         serializer.save(user=user)
 
+class GlobalReviewViewSet(ReadOnlyModelViewSet):
+    queryset = Review.objects.select_related('user').all()
+    serializer_class = ReviewSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [OrderingFilter]
+    ordering_fields = ['rating', 'created_at']
 
 class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet):
     # Optimized: Fetches cart items, their products, and product images efficiently
