@@ -184,6 +184,7 @@ class Order(models.Model):
     zip_code = models.CharField(max_length=255, null=True, blank=True)
     phone = models.CharField(max_length=255, null=True, blank=True)
     delivery_charge = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT) 
     

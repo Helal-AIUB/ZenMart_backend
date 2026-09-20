@@ -18,6 +18,7 @@ router.register('notifications', views.NotificationViewSet, basename='notificati
 router.register('coupons', views.CouponViewSet, basename='coupons')
 router.register('reviews', views.GlobalReviewViewSet, basename='all-reviews')
 
+
 # pprint(router.urls)
 
 products_router = routers.NestedDefaultRouter(router, 'products', lookup = 'product')
@@ -35,4 +36,5 @@ urlpatterns = [
     path('dashboard-stats/', views.DashboardStatsView.as_view(), name='dashboard-stats'),
     path('revenue-analytics/', views.revenue_analytics, name='revenue-analytics'),
     path('settings/', views.StoreSettingsView.as_view(), name='store-settings'),
+    path('analytics/ga4/', views.GoogleAnalyticsDashboardView.as_view(), name='ga4-analytics'),
 ] + router.urls + products_router.urls + carts_router.urls + orders_router.urls

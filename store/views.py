@@ -24,6 +24,7 @@ from .models import Cart, CartItem, Customer, Order, OrderItem, Product, Collect
 from django.db.models import Count
 from django.utils import timezone
 from datetime import timedelta
+from .analytics import fetch_ga4_dashboard_metrics
 from django.core.cache import cache
 from django.db.models import Sum, F
 from django.db.models.functions import TruncDate
@@ -433,3 +434,21 @@ class CouponViewSet(ModelViewSet):
             "coupon_code": serializer.validated_data['coupon'].code
         }, status=status.HTTP_200_OK)
         
+class GoogleAnalyticsDashboardView(APIView):
+    # permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        data = fetch_ga4_dashboard_metrics()
+
+        try:
+            sales_data = OrderItem.objects.filter(
+                order__payment_status='C'
+            ).aggregate(
+                total_sales=Sum(F('quantity') * F('unit_price'))
+            )
+            data['total_sales'] = sales_data['total_sales'] or 0
+        except Exception as e:
+            print(f"Sales Calculation Error: {e}")
+            data['total_sales'] = 0
+
+        return Response(data)
