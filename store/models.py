@@ -113,7 +113,7 @@ class Coupon(models.Model):
     discount_amount = models.DecimalField(max_digits=6, decimal_places=2)
     min_purchase_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0.00, help_text="Minimum cart value required")
     
-    # 🟢 Coupon Scope (All, Specific Collections, or Specific Products)
+    # Coupon Scope (All, Specific Collections, or Specific Products)
     is_global = models.BooleanField(default=True, help_text="If True, applies to all products.")
     applicable_collections = models.ManyToManyField(Collection, blank=True, related_name='coupons')
     applicable_products = models.ManyToManyField(Product, blank=True, related_name='coupons')
@@ -269,6 +269,7 @@ class StoreSettings(models.Model):
     
     google_analytics_id = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. G-XXXXXXXXXX")
     meta_pixel_id = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. 123456789012345")
+    gtm_id = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. GTM-XXXXXXX")
 
     def save(self, *args, **kwargs):
         if not self.pk and StoreSettings.objects.exists():
