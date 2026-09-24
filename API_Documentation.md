@@ -28,6 +28,11 @@
 | 16| `store/orders/<order_pk>/items/<item_pk>/` | PATCH / DELETE | Admin only | Update or remove item from an order |
 | 17| `auth/users/me/` | GET | Authenticated User | Get current logged-in user profile |
 | 18| `store/settings/` | GET | Anyone | Get global store settings (delivery charges) |
+| 19| `store/reviews/` | GET / POST | Anyone / Auth User | List product reviews or submit a new review |
+| 20| `store/reviews/<pk>/` | GET / PATCH / DELETE | Owner / Admin | Get, edit, or delete a review |
+| 21| `store/articles/` | GET | Anyone | List all blog articles with optional filters |
+| 22| `store/articles/<slug>/` | GET | Anyone | Get details of a single blog article |
+| 23| `store/analytics/ga4/` | GET | Admin only | Fetch Google Analytics 4 traffic & page view data |
 
 ---
 
@@ -496,3 +501,130 @@ Fetch global store configurations, such as delivery charges.
     "support_phone": "+8801825358009"
 }
 ```
+
+## 6. Review System
+
+> **Who creates reviews:** Authenticated Customers who purchased the product.  
+> **Public access:** Anyone can read the reviews.
+
+### GET `store/reviews/`
+
+List all product reviews. 
+
+**Filters (all optional):**
+| Filter | Type | Example |
+|--------|------|---------|
+| `product_id` | integer | `?product_id=15` |
+| `ordering` | string | `?ordering=-rating` (Sort by highest rating) |
+| `limit` | integer | `?limit=10` |
+
+```json
+// Response
+{
+    "count": 45,
+    "next": "[http://api.petorabd.com/store/reviews/?page=2](http://api.petorabd.com/store/reviews/?page=2)",
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "product_id": 15,
+            "user_name": "Rabbi Islam",
+            "rating": 5,
+            "comment": "My dog loves this food. Highly recommended!",
+            "created_at": "2026-09-20T10:30:00Z"
+        }
+    ]
+}
+
+### POST `store/reviews/`
+
+// Request body
+{
+    "product_id": 15,
+    "rating": 5,
+    "comment": "Amazing quality and fast delivery."
+}
+
+// Success Response
+{
+    "id": 2,
+    "product_id": 15,
+    "user_name": "Verified Customer",
+    "rating": 5,
+    "comment": "Amazing quality and fast delivery.",
+    "created_at": "2026-09-24T12:00:00Z"
+}
+
+## 7. Blog and Article System
+
+> **Who manages and post Article:** Admin only.  
+
+### POST `store/article/`
+List all product reviews. 
+
+**Filters (all optional):**
+| Filter | Type | Example |
+|--------|------|---------|
+| `category` | string | `?category=pet-care` |
+| `search` | string | `?search=dog training` |
+
+// Response
+{
+    "count": 12,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "title": "5 Essential Tips for Dog Training",
+            "slug": "5-essential-tips-for-dog-training",
+            "category_name": "Training",
+            "excerpt": "Learn the basics of training your new puppy...",
+            "image": "[http://api.petorabd.com/media/blog/dog_training.jpg](http://api.petorabd.com/media/blog/dog_training.jpg)",
+            "created_at": "2026-09-15T08:00:00Z"
+        }
+    ]
+}
+
+### GET `store/article/<slug>`
+
+List all article <id>. 
+
+// Response
+{
+    "id": 1,
+    "title": "5 Essential Tips for Dog Training",
+    "slug": "5-essential-tips-for-dog-training",
+    "category_name": "Training",
+    "excerpt": "Learn the basics of training your new puppy...",
+    "content": "<h2>Start Early</h2><p>Training should begin as soon as...</p>",
+    "image": "[http://api.petorabd.com/media/blog/dog_training.jpg](http://api.petorabd.com/media/blog/dog_training.jpg)",
+    "created_at": "2026-09-15T08:00:00Z"
+}
+
+## 8. Analytics Dashboard
+
+### GET `store/analytics/ga4/`
+
+// No request body
+
+// Success Response
+{
+    "realtime_active_users": "42",
+    "last_30_days": {
+        "total_users": 15420,
+        "total_views": 45200
+    },
+    "top_pages": [
+        {
+            "title": "Pedigree Adult Dry Dog Food",
+            "views": 1250,
+            "path": "/products/15"
+        },
+        {
+            "title": "5 Essential Tips for Dog Training",
+            "views": 840,
+            "path": "/blog/5-essential-tips-for-dog-training"
+        }
+    ]
+}
