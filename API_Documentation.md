@@ -1,6 +1,6 @@
 # Petora BD API Documentation
 
-**Base URL:** `api/` (e.g., `https://api.petorabd.com/api/` or `http://localhost:8000/api/`)
+**Website URL:** `https://zenmart-ecommerce1.vercel.app/en`
 
 **Authentication:** Endpoints that require authentication use the `Authorization: JWT <token>` header.
 
